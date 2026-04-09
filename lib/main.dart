@@ -13,11 +13,11 @@ class ChatApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'WoodyChat',
+      title: 'Natter',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         brightness: Brightness.dark,
-        scaffoldBackgroundColor: const Color(0xFF1B100E), // Sangat Gelap (Tema Kayu)
+        scaffoldBackgroundColor: const Color(0xFF1B100E), // Full Dark Wood
         colorScheme: ColorScheme.fromSeed(
           seedColor: const Color(0xFF5D4037),
           primary: const Color(0xFF8D6E63),
@@ -66,7 +66,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _nameController = TextEditingController();
 
   static final List<UserAccount> _registeredUsers = [
-    UserAccount(name: 'Admin Woody', email: 'admin@wood.com', password: '123'),
+    UserAccount(name: 'Admin Natter', email: 'admin@wood.com', password: '123'),
   ];
 
   void _handleSubmit() {
@@ -131,7 +131,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       const Icon(Icons.park, size: 80, color: Color(0xFF8D6E63)),
-                      const Text('WoodyChat', style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, fontFamily: 'Serif')),
+                      const Text('Natter', style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, fontFamily: 'Serif')),
                       const SizedBox(height: 32),
                       if (!isLogin) ...[
                         _buildInput('Nama Lengkap', _nameController, Icons.person),
@@ -220,6 +220,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     lastMessage: 'Baru saja ditambahkan',
                     lastMessageTime: 'Baru saja',
                     mood: '🍃 Fresh Leaves',
+                    messages: [],
                   ));
                 });
                 Navigator.pop(context);
@@ -296,7 +297,15 @@ class _HomeScreenState extends State<HomeScreen> {
                     ],
                   ),
                   trailing: Text(user.lastMessageTime, style: const TextStyle(fontSize: 12, color: Colors.white38)),
-                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => ChatScreen(user: user))),
+                  onTap: () async {
+                    // Update Home Screen when returning from Chat
+                    await Navigator.push(context, MaterialPageRoute(builder: (context) => ChatScreen(user: user)));
+                    setState(() {
+                      // Move updated contact to top
+                      _users.remove(user);
+                      _users.insert(0, user);
+                    });
+                  },
                 );
               },
             ),
@@ -429,30 +438,64 @@ class ChatScreen extends StatefulWidget {
 }
 
 class _ChatScreenState extends State<ChatScreen> {
-  final List<Map<String, dynamic>> _messages = [];
   final TextEditingController _ctrl = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    // Scroll to bottom when opening
+    WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
+  }
+
+  void _scrollToBottom() {
+    if (_scrollController.hasClients) {
+      _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+    }
+  }
 
   void _send() {
-    if (_ctrl.text.isEmpty) return;
+    if (_ctrl.text.trim().isEmpty) return;
     setState(() {
-      _messages.add({'text': _ctrl.text, 'isMe': true, 'time': 'Now'});
+      String currentTime = "${DateTime.now().hour}:${DateTime.now().minute.toString().padLeft(2, '0')}";
+      widget.user.messages.add(ChatMessage(
+        text: _ctrl.text,
+        isMe: true,
+        time: currentTime,
+      ));
+      
+      // Update data in model so Home Screen can see the latest message
+      widget.user.lastMessage = _ctrl.text;
+      widget.user.lastMessageTime = currentTime;
+      
       _ctrl.clear();
     });
+    // Scroll down after sending
+    WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(widget.user.name)),
+      appBar: AppBar(
+        title: Row(
+          children: [
+            CircleAvatar(radius: 18, backgroundImage: NetworkImage(widget.user.imageUrl)),
+            const SizedBox(width: 10),
+            Text(widget.user.name, style: const TextStyle(fontSize: 16)),
+          ],
+        ),
+      ),
       body: Column(
         children: [
           Expanded(
             child: ListView.builder(
+              controller: _scrollController,
               padding: const EdgeInsets.all(16),
-              itemCount: _messages.length,
+              itemCount: widget.user.messages.length,
               itemBuilder: (context, index) {
-                final msg = _messages[index];
-                bool isMe = msg['isMe'];
+                final msg = widget.user.messages[index];
+                bool isMe = msg.isMe;
                 return Align(
                   alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
                   child: Container(
@@ -460,16 +503,35 @@ class _ChatScreenState extends State<ChatScreen> {
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                     decoration: BoxDecoration(
                       color: isMe ? const Color(0xFF8D6E63) : const Color(0xFF3E2723),
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.only(
+                        topLeft: const Radius.circular(16),
+                        topRight: const Radius.circular(16),
+                        bottomLeft: Radius.circular(isMe ? 16 : 0),
+                        bottomRight: Radius.circular(isMe ? 0 : 16),
+                      ),
                     ),
-                    child: Text(msg['text'], style: const TextStyle(color: Colors.white)),
+                    child: Column(
+                      crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+                      children: [
+                        Text(msg.text, style: const TextStyle(color: Colors.white, fontSize: 15)),
+                        const SizedBox(height: 2),
+                        Text(
+                          msg.time,
+                          style: TextStyle(fontSize: 10, color: Colors.white.withOpacity(0.5)),
+                        ),
+                      ],
+                    ),
                   ),
                 );
               },
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.all(16.0),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: const BoxDecoration(
+              color: Color(0xFF120A08),
+              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+            ),
             child: Row(
               children: [
                 Expanded(
@@ -478,13 +540,20 @@ class _ChatScreenState extends State<ChatScreen> {
                     decoration: InputDecoration(
                       hintText: 'Ketik pesan...',
                       filled: true,
-                      fillColor: Colors.black26,
+                      fillColor: Colors.white10,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 20),
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(30), borderSide: BorderSide.none),
                     ),
                   ),
                 ),
                 const SizedBox(width: 8),
-                IconButton(onPressed: _send, icon: const Icon(Icons.send, color: Color(0xFF8D6E63))),
+                CircleAvatar(
+                  backgroundColor: const Color(0xFF8D6E63),
+                  child: IconButton(
+                    onPressed: _send,
+                    icon: const Icon(Icons.send, color: Colors.white, size: 20),
+                  ),
+                ),
               ],
             ),
           ),

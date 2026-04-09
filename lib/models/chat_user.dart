@@ -1,10 +1,23 @@
+class ChatMessage {
+  final String text;
+  final bool isMe;
+  final String time;
+
+  ChatMessage({
+    required this.text,
+    required this.isMe,
+    required this.time,
+  });
+}
+
 class ChatUser {
   final String id;
   final String name;
   final String imageUrl;
-  final String lastMessage;
-  final String lastMessageTime;
-  final String mood; // Fitur unik: Mood/Vibe
+  String lastMessage;
+  String lastMessageTime;
+  final String mood;
+  final List<ChatMessage> messages; // Menyimpan riwayat chat
 
   ChatUser({
     required this.id,
@@ -13,6 +26,7 @@ class ChatUser {
     required this.lastMessage,
     required this.lastMessageTime,
     required this.mood,
+    required this.messages,
   });
 }
 
@@ -24,6 +38,9 @@ final List<ChatUser> dummyUsers = [
     lastMessage: 'Halo, apa kabar?',
     lastMessageTime: '10:30',
     mood: '☕ Coffee Break',
+    messages: [
+      ChatMessage(text: 'Halo, apa kabar?', isMe: false, time: '10:30'),
+    ],
   ),
   ChatUser(
     id: '2',
@@ -32,6 +49,9 @@ final List<ChatUser> dummyUsers = [
     lastMessage: 'Besok jadi ketemuan?',
     lastMessageTime: '09:15',
     mood: '📚 Fokus Belajar',
+    messages: [
+      ChatMessage(text: 'Besok jadi ketemuan?', isMe: false, time: '09:15'),
+    ],
   ),
   ChatUser(
     id: '3',
@@ -40,5 +60,8 @@ final List<ChatUser> dummyUsers = [
     lastMessage: 'Siap, laksanakan!',
     lastMessageTime: 'Kemarin',
     mood: '🎮 Gaming Mode',
+    messages: [
+      ChatMessage(text: 'Siap, laksanakan!', isMe: false, time: 'Kemarin'),
+    ],
   ),
 ];
