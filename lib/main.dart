@@ -130,7 +130,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.park, size: 80, color: Color(0xFF8D6E63)),
+                      const Icon(Icons.chat, size: 80, color: Color(0xFF8D6E63)),
                       const Text('Natter', style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, fontFamily: 'Serif')),
                       const SizedBox(height: 32),
                       if (!isLogin) ...[
